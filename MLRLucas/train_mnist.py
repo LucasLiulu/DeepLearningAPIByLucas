@@ -80,7 +80,7 @@ class TrainModel(object):
                     self.saver.save(sess, os.path.join(self.MODEL_SAVE_PATH, self.MODEL_NAME), global_step=globals_step)
 
 def main(argv=None):
-    mnist_data_path = '.'
+    mnist_data_path = 'data'
     mnist = input_data.read_data_sets(mnist_data_path, one_hot=True)
     trainModel = TrainModel()
     trainModel.set_data_shape(mnist.train.images.shape)

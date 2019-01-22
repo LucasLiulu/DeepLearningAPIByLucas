@@ -8,8 +8,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
 
 def get_data():
-    train_data = pd.read_csv("I:\\data\\mnist\\adult.data.txt",header=None,delimiter=',', encoding='GB2312')
-    test_data = pd.read_csv("I:\\data\\mnist\\adult.test.txt",header=None,delimiter=',', encoding='GB2312')
+    train_data = pd.read_csv("data\\adult.data.txt",header=None,delimiter=',', encoding='GB2312')
+    test_data = pd.read_csv("data\\adult.test.txt",header=None,delimiter=',', encoding='GB2312')
 
     all_columns = ['age','workclass','fnlwgt','education','education-num',
                         'marital-status','occupation','relationship','race','sex',
