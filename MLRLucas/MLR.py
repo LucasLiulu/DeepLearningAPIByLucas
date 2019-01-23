@@ -4,6 +4,7 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import time, os
+from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
 
@@ -45,8 +46,8 @@ def get_data():
 
 class MLRClass(object):
     def __init__(self):
-        self.feature_length = 0
-        self.data_length = 0
+        self.feature_length = 10
+        self.data_length = 20
         self.moving_average_decay = 0.999
         self.learning_rate_base = 0.8
         self.learning_rate_decay = 0.999
@@ -54,10 +55,21 @@ class MLRClass(object):
         self.model_save_path = 'model'
         self.model_save_name = 'model.ckpt'
         self.graph = None
+        self.m = 2
+        self.n_epochs = 100
 
     def set_data_shape(self, shape):
         self.data_length = shape[0]
         self.feature_length = shape[1]
+
+    def set_fragmentations(self, m):
+        self.m = m
+
+    def set_epochs(self, n_epochs):
+        self.n_epochs = n_epochs
+
+    def set_batch_size(self, b):
+        self.batch_size = b
 
     def inference(self, m, input_tensor, X_dim):
         with tf.variable_scope('weights') as scp:
@@ -100,7 +112,7 @@ class MLRClass(object):
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for epoch in range(n_epoch):
+            for epoch in tqdm(range(n_epoch), unit='epoch', disable=False):
                 # f_dict = {X: test_x, y_: test_y}
                 f_dict = {X: train_x, y_: train_y}
                 # print(sess.run(learning_rate))
