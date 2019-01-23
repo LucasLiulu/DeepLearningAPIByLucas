@@ -48,12 +48,16 @@ class MLRClass(object):
         self.feature_length = 0
         self.data_length = 0
         self.moving_average_decay = 0.999
-        self.learning_rate_base = 0.38
+        self.learning_rate_base = 0.8
         self.learning_rate_decay = 0.999
         self.batch_size = 100
         self.model_save_path = 'model'
         self.model_save_name = 'model.ckpt'
         self.graph = None
+
+    def set_data_shape(self, shape):
+        self.data_length = shape[0]
+        self.feature_length = shape[1]
 
     def inference(self, m, input_tensor, X_dim):
         with tf.variable_scope('weights') as scp:
@@ -67,8 +71,9 @@ class MLRClass(object):
         p2 = tf.nn.sigmoid(W)
         return tf.reduce_sum(tf.multiply(p1, p2), 1)
 
-    def train(self, m=2, learning_rate=0.1, n_epoch=1000):
+    def train(self, m=2, learning_rate=0.51, n_epoch=1000):
         train_x, train_y, test_x, test_y = get_data()
+        self.set_data_shape(train_x.shape)
         X_dim = train_x.shape[1]
         X = tf.placeholder(tf.float32, [None, X_dim], name='x-input')
         y_ = tf.placeholder(tf.float32, [None], name='y-input')
@@ -79,14 +84,13 @@ class MLRClass(object):
         variable_averages_op = variable_averages.apply(tf.trainable_variables())
 
         cross_entropy_mean = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=pred, labels=y_))
-        # loss = tf.add_n(cross_entropy_mean)
         loss = tf.add_n([cross_entropy_mean])
-        # learning_rate = tf.train.exponential_decay(self.learning_rate_base,
-        #                                            global_steps,
-        #                                            self.data_length / self.batch_size,
-        #                                            self.learning_rate_decay)
-        # train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss, global_step=global_steps)
-        train_step = tf.train.FtrlOptimizer(learning_rate).minimize(loss, global_step=global_steps)
+        learning_rate = tf.train.exponential_decay(self.learning_rate_base,
+                                                   global_steps,
+                                                   self.data_length / self.batch_size,
+                                                   self.learning_rate_decay)
+        train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss, global_step=global_steps)
+        # train_step = tf.train.FtrlOptimizer(learning_rate).minimize(loss, global_step=global_steps)
         with tf.control_dependencies([train_step, variable_averages_op]):
             train_op = tf.no_op(name='train')
 
@@ -99,14 +103,16 @@ class MLRClass(object):
             for epoch in range(n_epoch):
                 # f_dict = {X: test_x, y_: test_y}
                 f_dict = {X: train_x, y_: train_y}
+                # print(sess.run(learning_rate))
                 _, cost_, predict_ = sess.run([train_op, loss, pred], feed_dict=f_dict)
                 auc = roc_auc_score(train_y, predict_)
+                # print('train auc: ', auc)
                 time_t = time.time()
                 if epoch % 100 == 0:
                     f_dict = {X: test_x, y_: test_y}
                     predict_test = sess.run(pred, feed_dict=f_dict)
-                    # _, cost_, predict_test = sess.run([train_op, loss, pred], feed_dict=f_dict)
-                    # print("predict_test: ", predict_test)
+                #     # _, cost_, predict_test = sess.run([train_op, loss, pred], feed_dict=f_dict)
+                #     # print("predict_test: ", predict_test)
                     test_auc = roc_auc_score(test_y, predict_test)
                     print("%d %ld cost:%f,train_auc:%f,test_auc:%f" % (epoch, (time_t - time_s), cost_, auc, test_auc))
                     result.append([epoch,(time_t - time_s),auc,test_auc])
