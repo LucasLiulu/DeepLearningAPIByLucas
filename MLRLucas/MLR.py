@@ -1,4 +1,4 @@
-# encoding=utf-8
+# coding=utf-8
 
 import tensorflow as tf
 import pandas as pd
@@ -71,11 +71,12 @@ class MLRClass(object):
     def set_batch_size(self, b):
         self.batch_size = b
 
-    def inference(self, m, input_tensor, X_dim):
-        with tf.variable_scope('weights') as scp:
+    def inference(self, m, input_tensor, X_dim, reuse=False):
+        with tf.variable_scope('weights', reuse=reuse) as scp:
             u = tf.get_variable(name='u', shape=[X_dim, m], initializer=tf.random_normal_initializer(0.0, 0.5))
             w = tf.get_variable(name='w', shape=[X_dim, m], initializer=tf.random_normal_initializer(0.0, 0.5))
-            scp.reuse_variables()
+            # scp.reuse_variables()
+        self.graph = tf.Graph()
 
         U = tf.matmul(input_tensor, u)
         p1 = tf.nn.softmax(U)
@@ -83,13 +84,16 @@ class MLRClass(object):
         p2 = tf.nn.sigmoid(W)
         return tf.reduce_sum(tf.multiply(p1, p2), 1)
 
-    def train(self, m=2, learning_rate=0.51, n_epoch=1000):
+    def train(self, m=2, n_epoch=100, show_progress=False):
         train_x, train_y, test_x, test_y = get_data()
         self.set_data_shape(train_x.shape)
         X_dim = train_x.shape[1]
         X = tf.placeholder(tf.float32, [None, X_dim], name='x-input')
         y_ = tf.placeholder(tf.float32, [None], name='y-input')
-        pred = self.inference(m, X, X_dim)
+        if self.graph:
+            pred = self.inference(m, X, X_dim, reuse=True)
+        else:
+            pred = self.inference(m, X, X_dim)
         global_steps = tf.Variable(0, trainable=False)
 
         variable_averages = tf.train.ExponentialMovingAverage(self.moving_average_decay, global_steps)
@@ -112,19 +116,14 @@ class MLRClass(object):
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for epoch in tqdm(range(n_epoch), unit='epoch', disable=False):
-                # f_dict = {X: test_x, y_: test_y}
+            for epoch in tqdm(range(n_epoch), unit='epoch', disable=(not show_progress)):
                 f_dict = {X: train_x, y_: train_y}
-                # print(sess.run(learning_rate))
                 _, cost_, predict_ = sess.run([train_op, loss, pred], feed_dict=f_dict)
                 auc = roc_auc_score(train_y, predict_)
-                # print('train auc: ', auc)
                 time_t = time.time()
                 if epoch % 100 == 0:
                     f_dict = {X: test_x, y_: test_y}
                     predict_test = sess.run(pred, feed_dict=f_dict)
-                #     # _, cost_, predict_test = sess.run([train_op, loss, pred], feed_dict=f_dict)
-                #     # print("predict_test: ", predict_test)
                     test_auc = roc_auc_score(test_y, predict_test)
                     print("%d %ld cost:%f,train_auc:%f,test_auc:%f" % (epoch, (time_t - time_s), cost_, auc, test_auc))
                     result.append([epoch,(time_t - time_s),auc,test_auc])
@@ -132,7 +131,10 @@ class MLRClass(object):
             saver.save(sess, os.path.join(self.model_save_path, self.model_save_name))
 
 def main(argv=None):
-    MLRClass().train()
+    MLRClass().train(n_epoch=400)
+    # mlrObj = MLRClass()
+    # for m in tqdm([5, 10, 15, 20, 1], unit='m', disable=False):
+    #     mlrObj.train(m, n_epoch=200, show_progress=False)
 
 if __name__ == "__main__":
     tf.app.run()

@@ -1,4 +1,4 @@
-# encoding=utf-8
+# coding=utf-8
 
 import tensorflow as tf
 from sklearn.metrics import roc_auc_score
