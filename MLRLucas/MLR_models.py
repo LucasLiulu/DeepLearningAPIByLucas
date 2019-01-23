@@ -4,7 +4,7 @@ from tqdm import tqdm
 from sklearn.metrics import roc_auc_score
 import numpy as np
 import tensorflow as tf
-import numbers, sklearn
+import numbers, sklearn, os
 
 
 def batcher(X_, y_=None, w_=None, batch_size=-1):
@@ -155,8 +155,8 @@ class MLRClassifier(MLRCore):
         probs = np.vstack((probs_negative.T, probs_positive))
         return probs.T
 
-    def save_state(self, path):
-        self.core.saver.save(self.session, path)
+    def save_state(self, path, name):
+        self.core.saver.save(self.session, os.path.join(path, name))
 
     def load_state(self, path):
         if self.core.graph is None:
