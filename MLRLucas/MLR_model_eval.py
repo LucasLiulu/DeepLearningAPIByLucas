@@ -16,7 +16,10 @@ class Eval_MLR_Model(object):
         y_ = tf.placeholder(tf.float32, [None], name='y-input')
         f_dict = {X: X_test, y_: y_test}
         pred = self.mlr.inference(m, X, X_dim)   # X 输入一个Tensor即可
-        saver = tf.train.Saver()
+
+        variable_averages = tf.train.ExponentialMovingAverage(self.mlr.moving_average_decay)
+        variables_to_restore = variable_averages.variables_to_restore()
+        saver = tf.train.Saver(variables_to_restore)
         with tf.Session() as sess:
             ckpt = tf.train.get_checkpoint_state(self.mlr.model_save_path)
             if ckpt and ckpt.model_checkpoint_path:
