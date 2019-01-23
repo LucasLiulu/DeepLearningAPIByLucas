@@ -89,8 +89,8 @@ class MLRClass(object):
                                                    global_steps,
                                                    self.data_length / self.batch_size,
                                                    self.learning_rate_decay)
-        train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss, global_step=global_steps)
-        # train_step = tf.train.FtrlOptimizer(learning_rate).minimize(loss, global_step=global_steps)
+        # train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss, global_step=global_steps)
+        train_step = tf.train.FtrlOptimizer(learning_rate).minimize(loss, global_step=global_steps)
         with tf.control_dependencies([train_step, variable_averages_op]):
             train_op = tf.no_op(name='train')
 
