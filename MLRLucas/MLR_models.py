@@ -116,7 +116,7 @@ class MLRClassifier(MLRCore):
             # print('X_ shape: ', X_.shape)
             perm = np.random.permutation(X_.shape[0])
             epoch_loss = []
-            for bX, by, bw in batcher(X_.iloc[perm], y_.iloc[perm], batch_size=self.batch_size):
+            for bX, by, bw in batcher(X_.iloc[perm], y_.iloc[perm], w_[perm], batch_size=self.batch_size):
                 fd = batch_feeddict(bX, by, bw, core=self.core)
                 ops_to_run = [self.core.trainer_op, self.core.loss, self.core.outputs]
                 _, batch_loss, predict = self.session.run(ops_to_run, feed_dict=fd)

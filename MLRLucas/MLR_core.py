@@ -6,7 +6,8 @@
 import tensorflow as tf
 
 class MLRCore(object):
-    def __init__(self, m=2, seed=None, data_length=None, n_features=None):
+    def __init__(self, m=2, seed=None, data_length=None,
+                 batch_size=-1, n_features=None):
         self.m = m
         self.seed = seed
         self.data_length = data_length
@@ -15,7 +16,7 @@ class MLRCore(object):
         self.learning_rate_base = 0.88
         self.moving_average_decay = 0.999
         self.learning_rate_decay = 0.999
-        self.batch_size = 100
+        self.batch_size = batch_size
 
     def set_num_features(self, n):
         self.n_features = n
@@ -37,7 +38,7 @@ class MLRCore(object):
         self.outputs = tf.reduce_sum(tf.multiply(p1, p2), 1)
 
     def init_loss(self):
-        cross_entropy_mean = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.outputs, labels=self.y_train))
+        cross_entropy_mean = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.outputs, labels=self.y_train) * self.w_train)
         self.loss = tf.add_n([cross_entropy_mean])
 
     def init_target(self):
