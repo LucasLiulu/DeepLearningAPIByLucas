@@ -58,7 +58,7 @@ class MLRClassifier(MLRCore):
         self.early_stopping_rounds = 0    # 记录是否达到早停次数
 
     def fit(self, X, y, sample_weight=None, pos_class_weight=None, n_epochs=None, metric=None,
-            show_progress=False, maximize=None, verbose_eval=None, early_stopping_rounds=None):
+            show_progress=False, maximize=None, verbose_eval=None, early_stopping_rounds=None, l2=None):
         '''
 
         :param X:
@@ -80,7 +80,7 @@ class MLRClassifier(MLRCore):
             self.pos_class_weight = pos_class_weight
         used_w = self._preprocess_sample_weights(sample_weight, pos_class_weight, y)
         self._fit(X, y, used_w, n_epochs, show_progress, maximize=maximize, metric=metric,
-                  verbose_eval=verbose_eval, early_stopping_rounds=early_stopping_rounds)
+                  verbose_eval=verbose_eval, early_stopping_rounds=early_stopping_rounds, l2=l2)
 
     '''
     根据正负样本比例调整样本权重
@@ -113,7 +113,7 @@ class MLRClassifier(MLRCore):
         self.session.run(self.core.init_all_vars)
 
     def _fit(self, X_, y_, w_, n_epochs=None, show_progress=False, maximize=False,
-             verbose_eval=None, early_stopping_rounds=None, metric='logloss'):
+             verbose_eval=None, early_stopping_rounds=None, metric='logloss', l2=None):
         '''
         训练模型的核心类。
         其中包括模型的训练流程和早停。
