@@ -19,6 +19,8 @@ class MLRCore(object):
         :param l2:
         :param learning_rate_base: 初始学习率，如果训练轮数较少，可以设置得小一些
         :param learning_rate_decay: 学习率衰减率，与learning_rate_base联合使用，控制学习率衰减速度
+            learning_rate_base、learning_rate_decay共同控制学习率，如果训练轮次很多，则应该让learning_rate_base比较大，
+            让算法保存一个较长时间的大学习率模式
         '''
         self.m = m
         self.seed = seed
