@@ -7,15 +7,27 @@ import tensorflow as tf
 
 class MLRCore(object):
     def __init__(self, m=2, seed=None, data_length=None,
-                 batch_size=-1, n_features=None, l2=0):
+                 batch_size=-1, n_features=None, l2=0,
+                 learning_rate_base=0.88, learning_rate_decay=0.999):
+        '''
+
+        :param m:
+        :param seed:
+        :param data_length:
+        :param batch_size:
+        :param n_features:
+        :param l2:
+        :param learning_rate_base: 初始学习率，如果训练轮数较少，可以设置得小一些
+        :param learning_rate_decay: 学习率衰减率，与learning_rate_base联合使用，控制学习率衰减速度
+        '''
         self.m = m
         self.seed = seed
         self.data_length = data_length
         self.n_features = n_features
         self.graph = None
-        self.learning_rate_base = 0.88
+        self.learning_rate_base = learning_rate_base
         self.moving_average_decay = 0.999
-        self.learning_rate_decay = 0.999
+        self.learning_rate_decay = learning_rate_decay
         self.l2_regularization_rate = l2
         self.batch_size = batch_size
 
