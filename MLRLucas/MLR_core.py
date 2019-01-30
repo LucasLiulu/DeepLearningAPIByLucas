@@ -45,24 +45,29 @@ class MLRCore(object):
     def init_loss(self):
         cross_entropy_mean = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.outputs, labels=self.y_train) * self.w_train)
         self.loss = tf.add_n([cross_entropy_mean]) + tf.add_n(tf.get_collection('losses')) if self.l2_regularization_rate else tf.add_n([cross_entropy_mean])
+        tf.summary.scalar('loss', self.loss)
 
     def init_target(self):
         with tf.name_scope('target'):
             self.checked_target = tf.verify_tensor_all_finite(self.loss,
                                                               msg='NaN or Inf in target value',
                                                               name='target')
+            tf.summary.scalar('target', self.checked_target)
 
     def init_learning_rate(self):
         self.learning_rate = tf.train.exponential_decay(self.learning_rate_base,
                                                         self.global_steps,
                                                         self.data_length / self.batch_size,
                                                         self.learning_rate_decay)
+        tf.summary.scalar('learning_rate', self.learning_rate)
+
 
     def init_moving_average(self):
         self.global_steps = tf.Variable(0, trainable=False)
         variable_averages = tf.train.ExponentialMovingAverage(self.moving_average_decay, self.global_steps)
         self.variable_averages_op = variable_averages.apply(tf.trainable_variables())
         self.variable_to_restore = variable_averages.variables_to_restore()
+        tf.summary.scalar('global_steps', self.global_steps)
 
     def build_graph(self, restore=None):
         self.graph = tf.Graph()
@@ -86,7 +91,9 @@ class MLRCore(object):
             with tf.control_dependencies([self.trainer_step, self.variable_averages_op]):
                 self.trainer_op = tf.no_op(name='train')
             self.init_all_vars = tf.global_variables_initializer()
+            self.summary_op = tf.summary.merge_all()
             if restore:
                 self.saver = tf.train.Saver(self.variable_to_restore)
             else:
                 self.saver = tf.train.Saver()
+

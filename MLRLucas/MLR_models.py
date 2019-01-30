@@ -45,17 +45,20 @@ def batch_feeddict(X, y=None, w=None, core=None):
 
 class MLRClassifier(MLRCore):
     def __init__(self, seed=None, session_config=None, n_epoches=100,
-                 batch_size=-1, verbose_eval=0,
+                 batch_size=-1, need_logs=None, log_dir=None,
                  **core_arguments):
         core_arguments['seed'] = seed
+        core_arguments['batch_size'] = batch_size
         self.seed = seed
         self.core = MLRCore(**core_arguments)
         self.session_config = session_config
         self.n_epoches = n_epoches
         self.batch_size = batch_size
         self.steps = 0
-        self.verbose_eval = verbose_eval
+        self.verbose_eval = None
         self.early_stopping_rounds = 0    # 记录是否达到早停次数
+        self.need_logs = need_logs
+        self.log_dir = log_dir
 
     def fit(self, X, y, sample_weight=None, pos_class_weight=None, n_epochs=None, metric=None,
             show_progress=False, maximize=None, verbose_eval=None, early_stopping_rounds=None, l2=None):
@@ -68,6 +71,10 @@ class MLRClassifier(MLRCore):
         :param n_epochs:
         :param show_progress:
         :param early_stopping_rounds:
+        :param maximize:标记模型评价指标，是往大了变还是往下了变，TRUE往大了变。bool
+        :param verbose_eval:每隔多少轮打印一次模型评价指标得分，int
+        :param metric:模型训练时用什么指标评价，str
+        :param l2:l2正则化，float
         :return:
         '''
         if not (set(y) == set([0, 1])):
@@ -109,6 +116,11 @@ class MLRClassifier(MLRCore):
         '''
         if self.core.graph is None:
             raise ('Graph not found. Try call .core.build_graph() before .initialize_session()')
+        if self.need_logs:
+            self.summary_writer = tf.summary.FileWriter(self.log_dir, self.core.graph)
+            if self.verbose_eval > 0:
+                full_log_path = os.path.abspath(self.log_dir)
+                print("Initialize logs, use: \ntensorboard --logdir={}".format(full_log_path))
         self.session = tf.Session(config=self.session_config, graph=self.core.graph)
         self.session.run(self.core.init_all_vars)
 
@@ -132,6 +144,9 @@ class MLRClassifier(MLRCore):
             self.core.set_num_features(X_.shape[1])
         assert self.core.n_features == X_.shape[1], 'Different num of features in initialized graph and input'
 
+        if verbose_eval:
+            self.verbose_eval = verbose_eval
+
         if self.core.graph is None:
             self.core.build_graph()
             self.init_session()
@@ -141,9 +156,6 @@ class MLRClassifier(MLRCore):
 
         if self.seed:
             np.random.seed(self.seed)
-
-        if verbose_eval:
-            self.verbose_eval = verbose_eval
 
         # 添加早停
         if early_stopping_rounds:
@@ -161,14 +173,18 @@ class MLRClassifier(MLRCore):
             epoch_loss = []
             for bX, by, bw in batcher(X_.iloc[perm], y_.iloc[perm], w_[perm], batch_size=self.batch_size):
                 fd = batch_feeddict(bX, y=by, w=bw, core=self.core)
-                ops_to_run = [self.core.trainer_op, self.core.loss, self.core.outputs]
-                _, batch_loss, predict = self.session.run(ops_to_run, feed_dict=fd)
+                ops_to_run = [self.core.trainer_op, self.core.summary_op, self.core.loss, self.core.outputs]
+                _, summary_str, batch_loss, predict = self.session.run(ops_to_run, feed_dict=fd)
                 epoch_loss.append(batch_loss)
+                # write stats
+                if self.need_logs:
+                    self.summary_writer.add_summary(summary_str, self.steps)
+                    self.summary_writer.flush()
                 self.steps += 1
 
             # 训练时的模型评价指标
-            valided_fd = batch_feeddict(X_, y=y_, w=w_, core=self.core)
-            batch_loss_, predict_ = self.session.run([self.core.loss, self.core.outputs], feed_dict=valided_fd)
+            valided_fd = batch_feeddict(X_, core=self.core)
+            predict_ = self.session.run(self.core.outputs, feed_dict=valided_fd)
             if metric == 'logloss':
                 metric_value = np.mean(batch_loss)
             else:
